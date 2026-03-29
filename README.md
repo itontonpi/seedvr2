@@ -90,6 +90,24 @@ Verify the install:
 .venv/bin/python inference_cli.py --help
 ```
 
+Refresh an existing cloud checkout to the latest code without touching `.venv`:
+
+Use case:
+
+- You already have the repo and `.venv` on the cloud machine.
+- You want the newest code from `origin/main`.
+- You do not need to keep local tracked file changes in that checkout.
+
+Warning:
+
+- `git reset --hard origin/main` discards local tracked file changes permanently.
+- It does not remove `.venv`, because `.venv` is not tracked by git.
+- Do not use this if you have local code edits you want to keep.
+
+```bash
+cd /workspace/runpod-slim/seedvr2 && git fetch origin && git reset --hard origin/main
+```
+
 Run directory batch processing with the legacy pipeline mode:
 
 ```bash
