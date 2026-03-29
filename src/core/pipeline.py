@@ -626,6 +626,15 @@ def _setup_models(runner, ctx, debug, seed):
     # ─── VAE Setup ───
     if runner.vae and next(runner.vae.parameters()).device.type == 'meta':
         materialize_model(runner, "vae", ctx['vae_device'], runner.config, debug)
+
+    cache_context = ctx.get('cache_context')
+    if cache_context and cache_context.get('vae_cache') and not cache_context.get('cached_vae'):
+        runner.vae._model_name = cache_context['vae_model']
+        cache_context['global_cache'].set_vae(
+            {'node_id': cache_context['vae_id'], 'cache_model': True},
+            runner.vae, cache_context['vae_model'], debug
+        )
+        cache_context['vae_newly_cached'] = True
     
     ensure_precision_initialized(ctx, runner, debug)
     
@@ -640,7 +649,24 @@ def _setup_models(runner, ctx, debug, seed):
     else:
         if getattr(runner, '_dit_config_needs_application', False):
             apply_model_specific_config(runner.dit, runner, runner.config, True, debug)
-    
+
+    if cache_context and cache_context.get('dit_cache') and not cache_context.get('cached_dit'):
+        runner.dit._model_name = cache_context['dit_model']
+        cache_context['global_cache'].set_dit(
+            {'node_id': cache_context['dit_id'], 'cache_model': True},
+            runner.dit, cache_context['dit_model'], debug
+        )
+        cache_context['dit_newly_cached'] = True
+
+    if cache_context:
+        dit_is_cached = cache_context.get('cached_dit') or cache_context.get('dit_newly_cached')
+        vae_is_cached = cache_context.get('cached_vae') or cache_context.get('vae_newly_cached')
+        if dit_is_cached and vae_is_cached:
+            cache_context['global_cache'].set_runner(
+                cache_context['dit_id'], cache_context['vae_id'],
+                runner, debug
+            )
+
     ensure_precision_initialized(ctx, runner, debug)
     
     # Configure diffusion (1-step distilled)

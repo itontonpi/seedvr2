@@ -81,7 +81,7 @@ python inference_cli.py --help
 Cloud bootstrap example with `uv`, Python 3.13, PyTorch CUDA 12.8 wheels, sample videos, and output folders:
 
 ```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh && export PATH="$HOME/.local/bin:$PATH" && git clone https://github.com/itontonpi/seedvr2.git && cd seedvr2 && uv venv --python 3.13 && source .venv/bin/activate && uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128 && uv pip install -r requirements.txt && mkdir -p input output && cd input && wget -O sample1.mp4 https://download.samplelib.com/mp4/sample-5s.mp4 && wget -O sample2.mp4 https://download.samplelib.com/mp4/sample-10s.mp4 && wget -O sample3.mp4 https://download.samplelib.com/mp4/sample-15s.mp4 && wget -O sample4.mp4 https://download.samplelib.com/mp4/sample-20s.mp4 && wget -O sample5.mp4 https://download.samplelib.com/mp4/sample-30s.mp4
+curl -LsSf https://astral.sh/uv/install.sh | sh && source "$HOME/.local/bin/env" && git clone https://github.com/itontonpi/seedvr2.git && cd seedvr2 && uv venv --python 3.13 && source .venv/bin/activate && uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128 && uv pip install -r requirements.txt && mkdir -p input output && cd input && wget -O sample1.mp4 https://download.samplelib.com/mp4/sample-5s.mp4 && wget -O sample2.mp4 https://download.samplelib.com/mp4/sample-10s.mp4 && wget -O sample3.mp4 https://download.samplelib.com/mp4/sample-15s.mp4 && wget -O sample4.mp4 https://download.samplelib.com/mp4/sample-20s.mp4 && wget -O sample5.mp4 https://download.samplelib.com/mp4/sample-30s.mp4
 ```
 
 Verify the install:
@@ -90,16 +90,23 @@ Verify the install:
 .venv/bin/python inference_cli.py --help
 ```
 
-Run directory batch processing in pipeline mode:
+Run directory batch processing with the legacy pipeline mode:
 
 ```bash
 .venv/bin/python inference_cli.py input --output output --pipeline --cache_dit --cache_vae --dit_offload_device cpu --vae_offload_device cpu --resolution 1080 --batch_size 33 --uniform_batch_size --temporal_overlap 3
+```
+
+Run directory batch processing with the separate parallel pipeline implementation:
+
+```bash
+.venv/bin/python inference_cli.py input --output output --pipeline --pipeline_mode parallel --pipeline_prep_workers 2 --pipeline_post_workers 4 --pipeline_prefetch_batches 6 --cache_dit --cache_vae --dit_offload_device cpu --vae_offload_device cpu --resolution 1080 --batch_size 33 --uniform_batch_size --temporal_overlap 3
 ```
 
 Comments:
 
 - This directory batch processing setup was tested on an NVIDIA RTX PRO 6000.
 - `--pipeline` keeps both DiT and VAE on the same GPU and is best on a single GPU with enough VRAM.
+- `--pipeline_mode parallel` uses the new worker-pool pipeline without changing the existing legacy pipeline implementation.
 - `--cache_dit` and `--cache_vae` keep models warm between files in a directory batch.
 - `--dit_offload_device cpu` and `--vae_offload_device cpu` give the cache a safe place to live between runs.
 - `--batch_size 33` matches the model's preferred `4n+1` pattern and works well for video batches.
@@ -127,7 +134,8 @@ Basic examples:
 python inference_cli.py input.mp4 --resolution 1080
 python inference_cli.py input.png --resolution 2048
 python inference_cli.py media_folder/ --cache_dit --cache_vae --dit_offload_device cpu --vae_offload_device cpu
-.venv/bin/python inference_cli.py input --output output --pipeline --cache_dit --cache_vae --dit_offload_device cpu --vae_offload_device cpu --resolution 1080 --batch_size 33 --uniform_batch_size --temporal_overlap 3
+.venv/bin/python inference_cli.py input --output output --pipeline --pipeline_mode legacy --cache_dit --cache_vae --dit_offload_device cpu --vae_offload_device cpu --resolution 1080 --batch_size 33 --uniform_batch_size --temporal_overlap 3
+.venv/bin/python inference_cli.py input --output output --pipeline --pipeline_mode parallel --pipeline_prep_workers 2 --pipeline_post_workers 4 --pipeline_prefetch_batches 6 --cache_dit --cache_vae --dit_offload_device cpu --vae_offload_device cpu --resolution 1080 --batch_size 33 --uniform_batch_size --temporal_overlap 3
 ```
 
 Selected capabilities:
