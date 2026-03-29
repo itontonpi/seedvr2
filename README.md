@@ -98,6 +98,7 @@ Run directory batch processing in pipeline mode:
 
 Comments:
 
+- This directory batch processing setup was tested on an NVIDIA RTX PRO 6000.
 - `--pipeline` keeps both DiT and VAE on the same GPU and is best on a single GPU with enough VRAM.
 - `--cache_dit` and `--cache_vae` keep models warm between files in a directory batch.
 - `--dit_offload_device cpu` and `--vae_offload_device cpu` give the cache a safe place to live between runs.
