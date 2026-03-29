@@ -7,6 +7,7 @@ import os
 from typing import List, Optional
 from dataclasses import dataclass
 from .constants import get_all_model_files
+from ..optimization import compatibility as _compatibility  # noqa: F401
 
 # Model class imports using relative imports
 from ..models.dit_3b.nadit import NaDiT as NaDiT3B

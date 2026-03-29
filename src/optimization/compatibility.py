@@ -81,6 +81,23 @@ def ensure_xformers_flash_compat():
         sys.modules['xformers._C_flashattention'] = stub
 
 
+def ensure_transformers_flash_attn_mapping():
+    """
+    Patch transformers package mapping for flash_attn when missing.
+
+    Some transformers builds call PACKAGE_DISTRIBUTION_MAPPING["flash_attn"]
+    during import-time capability checks. Older/newer combinations can omit
+    that key entirely, which raises KeyError before the project can fall back
+    to SDPA. Populate the expected mapping defensively.
+    """
+    try:
+        from transformers.utils.import_utils import PACKAGE_DISTRIBUTION_MAPPING
+    except Exception:
+        return
+
+    PACKAGE_DISTRIBUTION_MAPPING.setdefault('flash_attn', ['flash-attn', 'flash_attn'])
+
+
 def ensure_bitsandbytes_safe():
     """
     Pre-test bitsandbytes; stub if broken to prevent import conflicts.
@@ -112,6 +129,7 @@ def ensure_bitsandbytes_safe():
 ensure_triton_compat()
 ensure_flash_attn_safe()
 ensure_xformers_flash_compat()
+ensure_transformers_flash_attn_mapping()
 ensure_bitsandbytes_safe()
 
 
