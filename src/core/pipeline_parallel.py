@@ -126,6 +126,7 @@ def _postprocess_and_write(
     metadata: Dict[str, Any],
     ctx: Dict[str, Any],
     color_correction: str,
+    debug: "Debug",
     copy_event: Optional[Any] = None,
     gpu_source: Optional[torch.Tensor] = None,
 ) -> None:
@@ -147,13 +148,13 @@ def _postprocess_and_write(
             cc_input = cc_input[:sample.shape[0]]
 
         if color_correction == "lab":
-            sample = lab_color_transfer(sample, cc_input, None, luminance_weight=0.8)
+            sample = lab_color_transfer(sample, cc_input, debug, luminance_weight=0.8)
         elif color_correction == "wavelet_adaptive":
-            sample = wavelet_adaptive_color_correction(sample, cc_input, None)
+            sample = wavelet_adaptive_color_correction(sample, cc_input, debug)
         elif color_correction == "wavelet":
-            sample = wavelet_reconstruction(sample, cc_input, None)
+            sample = wavelet_reconstruction(sample, cc_input, debug)
         elif color_correction == "hsv":
-            sample = hsv_saturation_histogram_match(sample, cc_input, None)
+            sample = hsv_saturation_histogram_match(sample, cc_input, debug)
         elif color_correction == "adain":
             sample = adaptive_instance_normalization(sample, cc_input)
 
@@ -460,6 +461,7 @@ def process_batches_parallel(
                     metadata,
                     ctx,
                     color_correction,
+                    debug,
                     copy_event,
                     gpu_source,
                 )
