@@ -120,11 +120,18 @@ Run directory batch processing with the separate parallel pipeline implementatio
 .venv/bin/python inference_cli.py input --output output --pipeline --pipeline_mode parallel --pipeline_prep_workers 2 --pipeline_post_workers 4 --pipeline_prefetch_batches 6 --cache_dit --cache_vae --dit_offload_device cpu --vae_offload_device cpu --resolution 1080 --batch_size 33 --uniform_batch_size --temporal_overlap 3
 ```
 
+Run directory batch processing with the staged pipeline implementation:
+
+```bash
+.venv/bin/python inference_cli.py input --output output --pipeline --pipeline_mode staged --pipeline_prep_workers 2 --pipeline_post_workers 4 --pipeline_stage_depth 3 --cache_dit --cache_vae --dit_offload_device cpu --vae_offload_device cpu --resolution 1080 --batch_size 33 --uniform_batch_size --temporal_overlap 3
+```
+
 Comments:
 
 - This directory batch processing setup was tested on an NVIDIA RTX PRO 6000.
 - `--pipeline` keeps both DiT and VAE on the same GPU and is best on a single GPU with enough VRAM.
 - `--pipeline_mode parallel` uses the new worker-pool pipeline without changing the existing legacy pipeline implementation.
+- `--pipeline_mode staged` uses explicit prep/H2D/compute/D2H/post stages with ordered commit.
 - `--cache_dit` and `--cache_vae` keep models warm between files in a directory batch.
 - `--dit_offload_device cpu` and `--vae_offload_device cpu` give the cache a safe place to live between runs.
 - `--batch_size 33` matches the model's preferred `4n+1` pattern and works well for video batches.
@@ -154,6 +161,7 @@ python inference_cli.py input.png --resolution 2048
 python inference_cli.py media_folder/ --cache_dit --cache_vae --dit_offload_device cpu --vae_offload_device cpu
 .venv/bin/python inference_cli.py input --output output --pipeline --pipeline_mode legacy --cache_dit --cache_vae --dit_offload_device cpu --vae_offload_device cpu --resolution 1080 --batch_size 33 --uniform_batch_size --temporal_overlap 3
 .venv/bin/python inference_cli.py input --output output --pipeline --pipeline_mode parallel --pipeline_prep_workers 2 --pipeline_post_workers 4 --pipeline_prefetch_batches 6 --cache_dit --cache_vae --dit_offload_device cpu --vae_offload_device cpu --resolution 1080 --batch_size 33 --uniform_batch_size --temporal_overlap 3
+.venv/bin/python inference_cli.py input --output output --pipeline --pipeline_mode staged --pipeline_prep_workers 2 --pipeline_post_workers 4 --pipeline_stage_depth 3 --cache_dit --cache_vae --dit_offload_device cpu --vae_offload_device cpu --resolution 1080 --batch_size 33 --uniform_batch_size --temporal_overlap 3
 ```
 
 Selected capabilities:

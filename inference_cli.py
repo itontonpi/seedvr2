@@ -987,6 +987,28 @@ def _process_frames_core(
                 post_workers=args.pipeline_post_workers,
                 prefetch_batches=args.pipeline_prefetch_batches,
             )
+        elif getattr(args, 'pipeline_mode', 'legacy') == 'staged':
+            from src.core.pipeline_staged import process_batches_staged
+            ctx = process_batches_staged(
+                runner, ctx=ctx, images=frames_tensor,
+                debug=debug,
+                batch_size=args.batch_size,
+                uniform_batch_size=args.uniform_batch_size,
+                seed=args.seed,
+                temporal_overlap=args.temporal_overlap,
+                resolution=args.resolution,
+                max_resolution=args.max_resolution,
+                input_noise_scale=args.input_noise_scale,
+                latent_noise_scale=args.latent_noise_scale,
+                color_correction=args.color_correction,
+                prepend_frames=0,
+                dit_cache=cache_dit,
+                vae_cache=cache_vae,
+                progress_callback=None,
+                prep_workers=args.pipeline_prep_workers,
+                post_workers=args.pipeline_post_workers,
+                stage_depth=args.pipeline_stage_depth,
+            )
         else:
             from src.core.pipeline import process_batches_pipelined
             ctx = process_batches_pipelined(
@@ -1515,15 +1537,18 @@ Examples:
                              "Processes each batch through encode→upscale→decode without model swapping. "
                              "Both VAE and DiT stay on GPU simultaneously. Best for serverless with 24GB+ VRAM. "
                              "Not compatible with BlockSwap or multi-GPU. Default: False")
-    perf_group.add_argument("--pipeline_mode", type=str, default="legacy", choices=["legacy", "parallel"],
+    perf_group.add_argument("--pipeline_mode", type=str, default="legacy", choices=["legacy", "parallel", "staged"],
                         help="Pipeline implementation: 'legacy' uses the original 3-stage pipeline, "
-                             "'parallel' uses a separate worker-pool based pipeline with async GPU->CPU handoff. Default: legacy")
+                             "'parallel' uses the worker-pool pipeline, "
+                             "'staged' uses explicit prep/H2D/compute/D2H/post stages with ordered commit. Default: legacy")
     perf_group.add_argument("--pipeline_prep_workers", type=int, default=2,
-                        help="Prep worker count for --pipeline_mode parallel. Higher values precompute more CPU batches. Default: 2")
+                        help="Prep worker count for --pipeline_mode parallel/staged. Higher values precompute more CPU batches. Default: 2")
     perf_group.add_argument("--pipeline_post_workers", type=int, default=2,
-                        help="Post worker count for --pipeline_mode parallel. Higher values parallelize CPU post-processing. Default: 2")
+                        help="Post worker count for --pipeline_mode parallel/staged. Higher values parallelize CPU post-processing. Default: 2")
     perf_group.add_argument("--pipeline_prefetch_batches", type=int, default=4,
                         help="How many batches to keep prefetched for --pipeline_mode parallel. Higher values trade RAM for smoother GPU feeding. Default: 4")
+    perf_group.add_argument("--pipeline_stage_depth", type=int, default=3,
+                        help="In-flight stage depth for --pipeline_mode staged. Higher values increase overlap and memory use. Default: 3")
     
     # Model Caching (for batch processing)
     cache_group = parser.add_argument_group('Model caching (batch processing)')
