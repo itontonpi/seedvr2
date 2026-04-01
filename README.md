@@ -164,6 +164,7 @@ python inference_cli.py media_folder/ --cache_dit --cache_vae --dit_offload_devi
 .venv/bin/python inference_cli.py input --output output --pipeline --pipeline_mode legacy --cache_dit --cache_vae --dit_offload_device cpu --vae_offload_device cpu --resolution 1080 --batch_size 33 --uniform_batch_size --temporal_overlap 3
 .venv/bin/python inference_cli.py input --output output --pipeline --pipeline_mode parallel --pipeline_prep_workers 2 --pipeline_post_workers 4 --pipeline_prefetch_batches 6 --cache_dit --cache_vae --dit_offload_device cpu --vae_offload_device cpu --resolution 1080 --batch_size 33 --uniform_batch_size --temporal_overlap 3
 .venv/bin/python inference_cli.py input --output output --pipeline --pipeline_mode staged --pipeline_prep_workers 2 --pipeline_post_workers 4 --pipeline_stage_depth 3 --cache_dit --cache_vae --dit_offload_device 0 --vae_offload_device 0 --tensor_offload_device none --resolution 1080 --batch_size 33 --uniform_batch_size --temporal_overlap 3
+.venv/bin/python inference_cli.py input --output output --pipeline --pipeline_mode staged --pipeline_prep_workers 2 --pipeline_post_workers 4 --pipeline_stage_depth 3 --cache_dit --cache_vae --dit_offload_device 0 --vae_offload_device 0 --tensor_offload_device none --attention_mode sageattn_3 --resolution 1080 --batch_size 33 --uniform_batch_size --temporal_overlap 3
 ```
 
 Selected capabilities:
@@ -185,6 +186,7 @@ Use `python inference_cli.py --help` for the full flag list.
 - VAE tiling is useful for high output resolutions
 - `torch.compile` support is exposed in both the CLI and ComfyUI nodes, but it depends on your PyTorch and backend setup
 - Flash Attention and SageAttention are optional backends; SDPA remains the baseline fallback
+- `--attention_mode sageattn_3` requires SageAttention 3 to be installed in the same Python environment and is intended for Blackwell GPUs
 
 ## Limitations
 
