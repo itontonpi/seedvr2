@@ -258,14 +258,11 @@ def process_batches_pipelined(
                 cc_input = None
                 if color_correction != "none":
                     # Clone the transformed video as color correction reference
-                    # Rearrange from TCHW to CTHW for color correction
+                    # Rearrange from TCHW to CTHW for color correction.
+                    # Keep the full batch here; overlap trimming happens later
+                    # when writing output, not during CPU postprocessing.
                     cc_input = optimized_single_video_rearrange(transformed_video.clone())
-                    
-                    # Apply temporal overlap trimming for color correction input
-                    actual_overlap = ctx.get('actual_temporal_overlap', 0)
-                    if batch_idx > 0 and actual_overlap > 0:
-                        cc_input = cc_input[actual_overlap:]
-                    
+
                     # Trim spatial to true target
                     if 'true_target_dims' in ctx:
                         th, tw = ctx['true_target_dims']

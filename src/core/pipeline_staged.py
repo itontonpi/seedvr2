@@ -98,9 +98,6 @@ def _prepare_batch_cpu(
     cc_input = None
     if color_correction != "none":
         cc_input = optimized_single_video_rearrange(transformed_video.clone())
-        actual_overlap = ctx.get("actual_temporal_overlap", 0)
-        if batch_idx > 0 and actual_overlap > 0:
-            cc_input = cc_input[actual_overlap:]
 
         if "true_target_dims" in ctx:
             th, tw = ctx["true_target_dims"]
