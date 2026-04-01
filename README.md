@@ -123,7 +123,7 @@ Run directory batch processing with the separate parallel pipeline implementatio
 Run directory batch processing with the staged pipeline implementation:
 
 ```bash
-.venv/bin/python inference_cli.py input --output output --pipeline --pipeline_mode staged --pipeline_prep_workers 2 --pipeline_post_workers 4 --pipeline_stage_depth 3 --cache_dit --cache_vae --dit_offload_device cpu --vae_offload_device cpu --resolution 1080 --batch_size 33 --uniform_batch_size --temporal_overlap 3
+.venv/bin/python inference_cli.py input --output output --pipeline --pipeline_mode staged --pipeline_prep_workers 2 --pipeline_post_workers 4 --pipeline_stage_depth 3 --cache_dit --cache_vae --dit_offload_device 0 --vae_offload_device 0 --tensor_offload_device none --resolution 1080 --batch_size 33 --uniform_batch_size --temporal_overlap 3
 ```
 
 Comments:
@@ -134,6 +134,8 @@ Comments:
 - `--pipeline_mode staged` uses explicit prep/H2D/compute/D2H/post stages with ordered commit.
 - `--cache_dit` and `--cache_vae` keep models warm between files in a directory batch.
 - `--dit_offload_device cpu` and `--vae_offload_device cpu` give the cache a safe place to live between runs.
+- `--dit_offload_device 0` and `--vae_offload_device 0` keep the cached models on GPU 0 instead of falling back to CPU.
+- `--tensor_offload_device none` keeps intermediate tensors on the GPU too, which is faster but uses more VRAM.
 - `--batch_size 33` matches the model's preferred `4n+1` pattern and works well for video batches.
 - `--uniform_batch_size` avoids a smaller last batch, which helps temporal consistency.
 - `--temporal_overlap 3` blends across batch boundaries to reduce flicker.
@@ -161,7 +163,7 @@ python inference_cli.py input.png --resolution 2048
 python inference_cli.py media_folder/ --cache_dit --cache_vae --dit_offload_device cpu --vae_offload_device cpu
 .venv/bin/python inference_cli.py input --output output --pipeline --pipeline_mode legacy --cache_dit --cache_vae --dit_offload_device cpu --vae_offload_device cpu --resolution 1080 --batch_size 33 --uniform_batch_size --temporal_overlap 3
 .venv/bin/python inference_cli.py input --output output --pipeline --pipeline_mode parallel --pipeline_prep_workers 2 --pipeline_post_workers 4 --pipeline_prefetch_batches 6 --cache_dit --cache_vae --dit_offload_device cpu --vae_offload_device cpu --resolution 1080 --batch_size 33 --uniform_batch_size --temporal_overlap 3
-.venv/bin/python inference_cli.py input --output output --pipeline --pipeline_mode staged --pipeline_prep_workers 2 --pipeline_post_workers 4 --pipeline_stage_depth 3 --cache_dit --cache_vae --dit_offload_device cpu --vae_offload_device cpu --resolution 1080 --batch_size 33 --uniform_batch_size --temporal_overlap 3
+.venv/bin/python inference_cli.py input --output output --pipeline --pipeline_mode staged --pipeline_prep_workers 2 --pipeline_post_workers 4 --pipeline_stage_depth 3 --cache_dit --cache_vae --dit_offload_device 0 --vae_offload_device 0 --tensor_offload_device none --resolution 1080 --batch_size 33 --uniform_batch_size --temporal_overlap 3
 ```
 
 Selected capabilities:
