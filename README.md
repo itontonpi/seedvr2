@@ -90,56 +90,6 @@ Verify the install:
 .venv/bin/python inference_cli.py --help
 ```
 
-Refresh an existing cloud checkout to the latest code without touching `.venv`:
-
-Use case:
-
-- You already have the repo and `.venv` on the cloud machine.
-- You want the newest code from `origin/main`.
-- You do not need to keep local tracked file changes in that checkout.
-
-Warning:
-
-- `git reset --hard origin/main` discards local tracked file changes permanently.
-- It does not remove `.venv`, because `.venv` is not tracked by git.
-- Do not use this if you have local code edits you want to keep.
-
-```bash
-cd /workspace/runpod-slim/seedvr2 && git fetch origin && git reset --hard origin/main
-```
-
-Run directory batch processing with the legacy pipeline mode:
-
-```bash
-.venv/bin/python inference_cli.py input --output output --pipeline --cache_dit --cache_vae --dit_offload_device cpu --vae_offload_device cpu --resolution 1080 --batch_size 33 --uniform_batch_size --temporal_overlap 3
-```
-
-Run directory batch processing with the separate parallel pipeline implementation:
-
-```bash
-.venv/bin/python inference_cli.py input --output output --pipeline --pipeline_mode parallel --pipeline_prep_workers 2 --pipeline_post_workers 4 --pipeline_prefetch_batches 6 --cache_dit --cache_vae --dit_offload_device cpu --vae_offload_device cpu --resolution 1080 --batch_size 33 --uniform_batch_size --temporal_overlap 3
-```
-
-Run directory batch processing with the staged pipeline implementation:
-
-```bash
-.venv/bin/python inference_cli.py input --output output --pipeline --pipeline_mode staged --pipeline_prep_workers 2 --pipeline_post_workers 4 --pipeline_stage_depth 3 --cache_dit --cache_vae --dit_offload_device 0 --vae_offload_device 0 --tensor_offload_device none --resolution 1080 --batch_size 33 --uniform_batch_size --temporal_overlap 3
-```
-
-Comments:
-
-- This directory batch processing setup was tested on an NVIDIA RTX PRO 6000.
-- `--pipeline` keeps both DiT and VAE on the same GPU and is best on a single GPU with enough VRAM.
-- `--pipeline_mode parallel` uses the new worker-pool pipeline without changing the existing legacy pipeline implementation.
-- `--pipeline_mode staged` uses explicit prep/H2D/compute/D2H/post stages with ordered commit.
-- `--cache_dit` and `--cache_vae` keep models warm between files in a directory batch.
-- `--dit_offload_device cpu` and `--vae_offload_device cpu` give the cache a safe place to live between runs.
-- `--dit_offload_device 0` and `--vae_offload_device 0` keep the cached models on GPU 0 instead of falling back to CPU.
-- `--tensor_offload_device none` keeps intermediate tensors on the GPU too, which is faster but uses more VRAM.
-- `--batch_size 33` matches the model's preferred `4n+1` pattern and works well for video batches.
-- `--uniform_batch_size` avoids a smaller last batch, which helps temporal consistency.
-- `--temporal_overlap 3` blends across batch boundaries to reduce flicker.
-
 ## Models
 
 Known models are defined in `src/utils/model_registry.py`. The default set includes:
@@ -155,19 +105,90 @@ By default, models are searched under `models/SEEDVR2`. In ComfyUI, the code als
 
 ## CLI Usage
 
-Basic examples:
+### Step 1: Verify The CLI
+
+Use this first to confirm the environment is working and the CLI is visible:
+
+```bash
+.venv/bin/python inference_cli.py --help
+```
+
+### Step 2: Refresh An Existing Cloud Checkout
+
+Use this when:
+
+- You already have the repo and `.venv` on the cloud machine.
+- You want the newest code from `origin/main`.
+- You do not need to keep local tracked file changes in that checkout.
+
+Warning:
+
+- `git reset --hard origin/main` discards local tracked file changes permanently.
+- It does not remove `.venv`, because `.venv` is not tracked by git.
+- Do not use this if you have local code edits you want to keep.
+
+```bash
+cd /workspace/runpod-slim/seedvr2 && git fetch origin && git reset --hard origin/main
+```
+
+### Step 3: Run A Basic Single File Test
+
+Use one of these first before larger batch jobs:
 
 ```bash
 python inference_cli.py input.mp4 --resolution 1080
 python inference_cli.py input.png --resolution 2048
+```
+
+### Step 4: Run A Basic Directory Batch
+
+This is the simplest cached directory run:
+
+```bash
 python inference_cli.py media_folder/ --cache_dit --cache_vae --dit_offload_device cpu --vae_offload_device cpu
+```
+
+### Step 5: Choose A Pipeline Mode
+
+Legacy pipeline:
+
+```bash
 .venv/bin/python inference_cli.py input --output output --pipeline --pipeline_mode legacy --cache_dit --cache_vae --dit_offload_device cpu --vae_offload_device cpu --resolution 1080 --batch_size 33 --uniform_batch_size --temporal_overlap 3
+```
+
+Separate parallel pipeline:
+
+```bash
 .venv/bin/python inference_cli.py input --output output --pipeline --pipeline_mode parallel --pipeline_prep_workers 2 --pipeline_post_workers 4 --pipeline_prefetch_batches 6 --cache_dit --cache_vae --dit_offload_device cpu --vae_offload_device cpu --resolution 1080 --batch_size 33 --uniform_batch_size --temporal_overlap 3
+```
+
+Staged pipeline with GPU-resident cached models:
+
+```bash
 .venv/bin/python inference_cli.py input --output output --pipeline --pipeline_mode staged --pipeline_prep_workers 2 --pipeline_post_workers 4 --pipeline_stage_depth 3 --cache_dit --cache_vae --dit_offload_device 0 --vae_offload_device 0 --tensor_offload_device none --resolution 1080 --batch_size 33 --uniform_batch_size --temporal_overlap 3
+```
+
+Staged pipeline with SageAttention 3:
+
+```bash
 .venv/bin/python inference_cli.py input --output output --pipeline --pipeline_mode staged --pipeline_prep_workers 2 --pipeline_post_workers 4 --pipeline_stage_depth 3 --cache_dit --cache_vae --dit_offload_device 0 --vae_offload_device 0 --tensor_offload_device none --attention_mode sageattn_3 --resolution 1080 --batch_size 33 --uniform_batch_size --temporal_overlap 3
 ```
 
-Selected capabilities:
+### Step 6: Know What Each Command Is Doing
+
+- This directory batch processing setup was tested on an NVIDIA RTX PRO 6000.
+- `--pipeline` keeps both DiT and VAE on the same GPU and is best on a single GPU with enough VRAM.
+- `--pipeline_mode parallel` uses the new worker-pool pipeline without changing the existing legacy pipeline implementation.
+- `--pipeline_mode staged` uses explicit prep/H2D/compute/D2H/post stages with ordered commit.
+- `--cache_dit` and `--cache_vae` keep models warm between files in a directory batch.
+- `--dit_offload_device cpu` and `--vae_offload_device cpu` give the cache a safe place to live between runs.
+- `--dit_offload_device 0` and `--vae_offload_device 0` keep the cached models on GPU 0 instead of falling back to CPU.
+- `--tensor_offload_device none` keeps intermediate tensors on the GPU too, which is faster but uses more VRAM.
+- `--batch_size 33` matches the model's preferred `4n+1` pattern and works well for video batches.
+- `--uniform_batch_size` avoids a smaller last batch, which helps temporal consistency.
+- `--temporal_overlap 3` blends across batch boundaries to reduce flicker.
+
+### Step 7: Optional Capabilities
 
 - Single image input
 - Single video input
